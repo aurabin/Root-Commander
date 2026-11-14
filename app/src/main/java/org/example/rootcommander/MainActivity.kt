@@ -44,6 +44,7 @@ class MainActivity : Activity() {
         row.addView(button("◀ Links") { choose(0) }, LinearLayout.LayoutParams(0, -2, 1f))
         row.addView(button("Rechts ▶") { choose(1) }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(row)
+        root.addView(button("📘 Wissen & Sicherheit") { startActivity(Intent(this, GuideActivity::class.java)) })
         listing = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(ScrollView(this).apply { addView(listing) }, LinearLayout.LayoutParams(-1, 0, 2f))
         val operations = LinearLayout(this)
