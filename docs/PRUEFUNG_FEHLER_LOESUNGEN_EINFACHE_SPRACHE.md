@@ -12,7 +12,7 @@ Die Haupt-App, die Datei-Funktionen, die Shell, die Teilen-Verbindung zu ChatGPT
 
 **Lösung:** Diesen fehlerhaften Vorbereitungsschritt entfernt. Der GitHub-Rechner bringt bereits ein Android-SDK mit. Der neue Ablauf prüft und ergänzt die nötigen Android-Werkzeuge direkt.
 
-**Noch offen:** Ein neuer erfolgreicher Lauf muss dies bestätigen. Falls das SDK auf dem GitHub-Rechner fehlt, muss die Installation anders vorbereitet werden.
+**Zweiter Fehler im echten Test:** Danach meldete GitHub: `sdkmanager: command not found`. Das Programm war nicht über den normalen Suchpfad erreichbar. **Zweiter Workaround:** Der Build sucht jetzt den vollständigen Dateipfad des SDK-Managers und startet ihn direkt. **Noch offen:** Ein erfolgreicher neuer Lauf muss das bestätigen.
 
 ### 2. Ordner nach einem Neustart verschwinden
 **Gefunden:** Die App merkte sich die gewählten Ordner nur, solange sie lief.
