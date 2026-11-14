@@ -41,14 +41,14 @@ class MainActivity : Activity() {
             setTextColor(Color.rgb(90, 204, 230)); gravity = Gravity.CENTER
         })
         val row = LinearLayout(this)
-        row.addView(button("◀ Links") { choose(0) }, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(button("Rechts ▶") { choose(1) }, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(button(Languages.label("left")) { choose(0) }, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(button(Languages.label("right")) { choose(1) }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(row)
-        root.addView(button("📘 Wissen & Sicherheit") { startActivity(Intent(this, GuideActivity::class.java)) })
+        root.addView(button(Languages.label("guide")) { startActivity(Intent(this, GuideActivity::class.java)) })
         val helpers = LinearLayout(this)
-        helpers.addView(button("Termux") { openHelper("com.termux", "https://f-droid.org/packages/com.termux/") },
+        helpers.addView(button(Languages.label("termux")) { openHelper("com.termux", "https://f-droid.org/packages/com.termux/") },
             LinearLayout.LayoutParams(0, -2, 1f))
-        helpers.addView(button("Shizuku") { openHelper("moe.shizuku.privileged.api", "https://shizuku.rikka.app/") },
+        helpers.addView(button(Languages.label("shizuku")) { openHelper("moe.shizuku.privileged.api", "https://shizuku.rikka.app/") },
             LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(helpers)
         listings = Array(2) { LinearLayout(this).apply { orientation = LinearLayout.VERTICAL } }
@@ -66,10 +66,10 @@ class MainActivity : Activity() {
         }
         root.addView(panels, LinearLayout.LayoutParams(-1, 0, 2f))
         val operations = LinearLayout(this)
-        operations.addView(button("◀ Kopieren") { copyTo(0) }, LinearLayout.LayoutParams(0, -2, 1f))
-        operations.addView(button("Kopieren ▶") { copyTo(1) }, LinearLayout.LayoutParams(0, -2, 1f))
+        operations.addView(button(Languages.label("copyLeft")) { copyTo(0) }, LinearLayout.LayoutParams(0, -2, 1f))
+        operations.addView(button(Languages.label("copyRight")) { copyTo(1) }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(operations)
-        root.addView(button("APK öffnen") {
+        root.addView(button(Languages.label("apk")) {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "application/vnd.android.package-archive"
                 addCategory(Intent.CATEGORY_OPENABLE)
@@ -78,14 +78,14 @@ class MainActivity : Activity() {
         command = EditText(this).apply { hint = "Shell-Befehl"; setTextColor(fg); setHintTextColor(Color.LTGRAY) }
         root.addView(command)
         val terminals = LinearLayout(this)
-        terminals.addView(button("Shell") { runShell(false) }, LinearLayout.LayoutParams(0, -2, 1f))
-        terminals.addView(button("Root (su)") {
+        terminals.addView(button(Languages.label("shell")) { runShell(false) }, LinearLayout.LayoutParams(0, -2, 1f))
+        terminals.addView(button(Languages.label("root")) {
             AlertDialog.Builder(this).setTitle("Root-Befehl bestätigen")
                 .setMessage(command.text.toString()).setNegativeButton("Abbrechen", null)
                 .setPositiveButton("Ausführen") { _, _ -> runShell(true) }.show()
         }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(terminals)
-        log = TextView(this).apply { text = "Bereit"; setTextColor(fg); setPadding(8, 8, 8, 8) }
+        log = TextView(this).apply { text = Languages.label("ready"); setTextColor(fg); setPadding(8, 8, 8, 8) }
         root.addView(ScrollView(this).apply { addView(log) }, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
         restoreFolders()
