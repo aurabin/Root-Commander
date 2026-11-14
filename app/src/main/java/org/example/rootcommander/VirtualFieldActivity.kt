@@ -5,109 +5,170 @@ import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
+import android.provider.Settings
+import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import android.net.Uri
-import android.provider.Settings
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Virtual Field: an animated, offline dashboard. No elevated permissions or hidden execution.
- * Each action requires a visible user tap.
- */
+/** Local, user-controlled Android launcher dashboard. No hidden privileges. */
 class VirtualFieldActivity : Activity() {
-    private fun t(de: String, en: String, fr: String, pt: String): String = when (Locale.getDefault().language) {
-        "de" -> de
-        "fr" -> fr
-        "pt" -> pt
-        else -> en
+    private val ink = Color.rgb(233, 245, 255)
+    private val cyan = Color.rgb(69, 212, 242)
+    private fun tr(de: String, en: String, fr: String, pt: String) = when (Locale.getDefault().language) {
+        "de" -> de; "fr" -> fr; "pt" -> pt; else -> en
     }
-
+    private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
+    private fun panel(color: Int, radius: Int = 22) = GradientDrawable().apply {
+        setColor(color); cornerRadius = dp(radius).toFloat()
+        setStroke(dp(1), Color.rgb(54, 88, 118))
+    }
+    private fun label(s: String, size: Float, color: Int = ink) = TextView(this).apply {
+        text = s; textSize = size; setTextColor(color)
+    }
+    private fun launch(intent: Intent) {
+        try { startActivity(intent) }
+        catch (_: Exception) {
+            android.app.AlertDialog.Builder(this)
+                .setMessage(tr("Diese Funktion ist auf diesem Gerät nicht verfügbar.",
+                    "This feature is not available on this device.",
+                    "Fonction indisponible sur cet appareil.",
+                    "Função indisponível neste dispositivo."))
+                .setPositiveButton("OK", null).show()
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.statusBarColor = Color.rgb(8, 17, 32)
+        window.navigationBarColor = Color.rgb(8, 17, 32)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(20, 20, 20, 20)
-            setBackgroundColor(Color.rgb(9, 18, 35))
+            setPadding(dp(16), dp(18), dp(16), dp(12))
+            setBackgroundColor(Color.rgb(8, 17, 32))
         }
-        root.addView(TextView(this).apply {
-            text = t("VIRTUELLES FELD", "VIRTUAL FIELD", "CHAMP VIRTUEL", "CAMPO VIRTUAL")
-            textSize = 24f
-            setTextColor(Color.CYAN)
-        })
-        root.addView(FieldView(), LinearLayout.LayoutParams(-1, 0, 1f))
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        fun action(label: String, task: () -> Unit) {
-            actions.addView(Button(this).apply {
-                text = label
-                isAllCaps = false
+        root.addView(label("ROOTCOMMANDER", 13f, cyan))
+        root.addView(label(tr("Dein virtuelles Feld", "Your virtual field", "Votre champ virtuel", "Seu campo virtual"), 25f))
+        root.addView(label(tr("Deine Werkzeuge. Deine Kontrolle.", "Your tools. Your control.",
+            "Vos outils. Votre contrôle.", "Suas ferramentas. Seu controle."), 13f, Color.LTGRAY))
+        val orbit = OrbitView()
+        root.addView(orbit, LinearLayout.LayoutParams(-1, dp(132)).apply { topMargin = dp(12) })
+        val scroll = ScrollView(this).apply { isFillViewport = false }
+        val grid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        fun tile(symbol: String, title: String, subtitle: String, task: () -> Unit): LinearLayout {
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                background = panel(Color.rgb(21, 40, 63))
+                setPadding(dp(7), dp(11), dp(7), dp(11))
+                isClickable = true
+                isFocusable = true
+                contentDescription = "$title. $subtitle"
                 setOnClickListener { task() }
-            })
+            }
+            item.addView(label(symbol, 28f, cyan).apply { gravity = Gravity.CENTER })
+            item.addView(label(title, 14f).apply { gravity = Gravity.CENTER; maxLines = 2 })
+            item.addView(label(subtitle, 10f, Color.LTGRAY).apply { gravity = Gravity.CENTER; maxLines = 2 })
+            return item
         }
-        action(t("Dateimanager öffnen", "Open file manager", "Ouvrir fichiers", "Abrir arquivos")) {
-            startActivity(Intent(this, MainActivity::class.java))
+        fun row(vararg items: LinearLayout) {
+            val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            items.forEach { item ->
+                line.addView(item, LinearLayout.LayoutParams(0, dp(115), 1f).apply {
+                    setMargins(dp(4), dp(4), dp(4), dp(4))
+                })
+            }
+            grid.addView(line)
         }
-        action(t("Ordner auswählen", "Choose folder", "Choisir un dossier", "Escolher pasta")) {
-            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }, 201)
-        }
-        action(t("Android-Einstellungen", "Android settings", "Paramètres Android", "Configurações Android")) {
-            startActivity(Intent(Settings.ACTION_SETTINGS))
-        }
-        action(t("Entwickleroptionen (falls verfügbar)", "Developer options (if available)", "Options développeur (si disponibles)", "Opções do desenvolvedor (se disponíveis)")) {
-            try { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
-            catch (_: Exception) { startActivity(Intent(Settings.ACTION_SETTINGS)) }
-        }
-        action(t("Hilfe und Sicherheit", "Help and safety", "Aide et sécurité", "Ajuda e segurança")) {
-            startActivity(Intent(this, GuideActivity::class.java))
-        }
-        root.addView(ScrollView(this).apply { addView(actions) }, LinearLayout.LayoutParams(-1, 0, 2f))
-        root.addView(TextView(this).apply {
-            text = t("Das Feld ist eine Oberfläche, kein Root- oder Sicherheits-Bypass.", "This field is a dashboard, not a root or security bypass.", "Ce champ est une interface, pas un contournement de sécurité.", "Este campo é uma interface, não contorna a segurança.")
-            setTextColor(Color.LTGRAY)
-        })
+        row(
+            tile("▣", tr("Dateien", "Files", "Fichiers", "Arquivos"), tr("Zwei Fenster", "Dual pane", "Deux volets", "Dois painéis")) {
+                launch(Intent(this, MainActivity::class.java))
+            },
+            tile("⌁", tr("Ordner", "Folders", "Dossiers", "Pastas"), tr("Zugriff wählen", "Choose access", "Choisir accès", "Escolher acesso")) {
+                launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                })
+            }
+        )
+        row(
+            tile("◈", tr("Einstellungen", "Settings", "Paramètres", "Configurações"), "Android") {
+                launch(Intent(Settings.ACTION_SETTINGS))
+            },
+            tile("⚙", tr("Entwickler", "Developer", "Développeur", "Desenvolvedor"), tr("Optionen", "Options", "Options", "Opções")) {
+                launch(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+            }
+        )
+        row(
+            tile("▤", tr("Apps", "Apps", "Applis", "Apps"), tr("Verwalten", "Manage", "Gérer", "Gerenciar")) {
+                launch(Intent(Settings.ACTION_APPLICATION_SETTINGS))
+            },
+            tile("◉", tr("Speicher", "Storage", "Stockage", "Armazenamento"), tr("Übersicht", "Overview", "Aperçu", "Visão geral")) {
+                launch(Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS))
+            }
+        )
+        row(
+            tile("⌘", "Termux", tr("Terminal öffnen", "Open terminal", "Ouvrir terminal", "Abrir terminal")) {
+                val i = packageManager.getLaunchIntentForPackage("com.termux")
+                if (i != null) launch(i) else launch(Intent(Intent.ACTION_VIEW, Uri.parse("https://f-droid.org/packages/com.termux/")))
+            },
+            tile("◇", "Shizuku", tr("Dienst öffnen", "Open service", "Ouvrir service", "Abrir serviço")) {
+                val i = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
+                if (i != null) launch(i) else launch(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+            }
+        )
+        row(
+            tile("ⓘ", tr("Hilfe", "Help", "Aide", "Ajuda"), tr("Anleitung", "Guide", "Guide", "Guia")) {
+                launch(Intent(this, GuideActivity::class.java))
+            },
+            tile("↗", tr("Teilen", "Share", "Partager", "Compartilhar"), tr("Projektlink", "Project link", "Lien du projet", "Link do projeto")) {
+                launch(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, "https://github.com/aurabin/Root-Commander")
+                }, null))
+            }
+        )
+        scroll.addView(grid)
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(label(tr("Keine heimliche Fernsteuerung. Android-Berechtigungen bleiben geschützt.",
+            "No hidden remote control. Android permissions remain protected.",
+            "Aucun contrôle à distance caché. Permissions Android protégées.",
+            "Sem controle remoto oculto. Permissões Android protegidas."), 11f, Color.LTGRAY))
         setContentView(root)
     }
 
-    private inner class FieldView : View(this@VirtualFieldActivity) {
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val started = SystemClock.uptimeMillis()
-        override fun onDraw(canvas: Canvas) {
-            super.onDraw(canvas)
-            val w = width.toFloat()
-            val h = height.toFloat()
-            val centerX = w / 2f
-            val centerY = h / 2f
-            val radius = minOf(w, h) * .32f
-            val phase = (SystemClock.uptimeMillis() - started) / 1500.0
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 2f
-            for (ring in 1..3) {
-                paint.color = Color.argb(130, 50, 185, 230)
-                canvas.drawCircle(centerX, centerY, radius * ring / 3f, paint)
+    private inner class OrbitView : View(this@VirtualFieldActivity) {
+        private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val start = SystemClock.uptimeMillis()
+        override fun onDraw(c: Canvas) {
+            super.onDraw(c)
+            val x = width / 2f; val y = height / 2f
+            val r = minOf(width, height) * .39f
+            val angle = (SystemClock.uptimeMillis() - start) / 2000.0
+            p.style = Paint.Style.STROKE; p.strokeWidth = dp(1).toFloat()
+            for (i in 1..3) {
+                p.color = Color.argb(120, 65, 200, 240)
+                c.drawCircle(x, y, r * i / 3f, p)
             }
-            for (node in 0 until 8) {
-                val a = phase * .35 + node * Math.PI / 4
-                val x = centerX + radius * cos(a).toFloat()
-                val y = centerY + radius * sin(a).toFloat()
-                paint.color = Color.rgb(80, 200, 245)
-                canvas.drawLine(centerX, centerY, x, y, paint)
-                paint.style = Paint.Style.FILL
-                canvas.drawCircle(x, y, 7f, paint)
-                paint.style = Paint.Style.STROKE
+            for (i in 0..7) {
+                val a = angle * .45 + i * Math.PI / 4
+                val px = x + r * cos(a).toFloat()
+                val py = y + r * sin(a).toFloat()
+                p.color = Color.rgb(42, 119, 160); c.drawLine(x, y, px, py, p)
+                p.style = Paint.Style.FILL; p.color = cyan
+                c.drawCircle(px, py, dp(4).toFloat(), p)
+                p.style = Paint.Style.STROKE
             }
-            paint.style = Paint.Style.FILL
-            paint.color = Color.WHITE
-            canvas.drawCircle(centerX, centerY, 11f, paint)
-            postInvalidateDelayed(33L)
+            p.style = Paint.Style.FILL; p.color = Color.WHITE
+            c.drawCircle(x, y, dp(8).toFloat(), p)
+            if (visibility == VISIBLE && isAttachedToWindow) postInvalidateDelayed(50L)
         }
     }
 }
