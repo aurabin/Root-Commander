@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.view.Gravity
 import android.widget.*
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class MainActivity : Activity() {
@@ -19,7 +18,7 @@ class MainActivity : Activity() {
     private var selected: Uri? = null
     private var selectedName = ""
     private var selectedPane = 0
-    private lateinit var listing: LinearLayout
+    private lateinit var listings: Array<LinearLayout>
     private lateinit var log: TextView
     private lateinit var command: EditText
     private val fg = Color.rgb(228, 241, 251)
@@ -46,8 +45,20 @@ class MainActivity : Activity() {
         row.addView(button("Rechts ▶") { choose(1) }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(row)
         root.addView(button("📘 Wissen & Sicherheit") { startActivity(Intent(this, GuideActivity::class.java)) })
-        listing = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(ScrollView(this).apply { addView(listing) }, LinearLayout.LayoutParams(-1, 0, 2f))
+        listings = Array(2) { LinearLayout(this).apply { orientation = LinearLayout.VERTICAL } }
+        val panels = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        for (pane in 0..1) {
+            val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            column.addView(TextView(this).apply {
+                text = if (pane == 0) "LINKS" else "RECHTS"
+                setTextColor(fg)
+                gravity = Gravity.CENTER
+            })
+            column.addView(ScrollView(this).apply { addView(listings[pane]) },
+                LinearLayout.LayoutParams(-1, 0, 1f))
+            panels.addView(column, LinearLayout.LayoutParams(0, -1, 1f))
+        }
+        root.addView(panels, LinearLayout.LayoutParams(-1, 0, 2f))
         val operations = LinearLayout(this)
         operations.addView(button("◀ Kopieren") { copyTo(0) }, LinearLayout.LayoutParams(0, -2, 1f))
         operations.addView(button("Kopieren ▶") { copyTo(1) }, LinearLayout.LayoutParams(0, -2, 1f))
@@ -89,7 +100,7 @@ class MainActivity : Activity() {
                 log.text = "Ein alter Ordnerzugriff ist nicht mehr gültig. Bitte Ordner erneut auswählen."
             }
         }
-        if (trees[0] != null) show(0) else if (trees[1] != null) show(1)
+        for (pane in 0..1) if (trees[pane] != null) show(pane)
     }
 
     private fun choose(pane: Int) {
@@ -133,7 +144,8 @@ class MainActivity : Activity() {
     private fun show(pane: Int) {
         val tree = trees[pane] ?: return
         val folder = folders[pane] ?: return
-        selected = null; selectedName = ""; selectedPane = pane
+        if (selectedPane == pane) { selected = null; selectedName = "" }
+        val listing = listings[pane]
         listing.removeAllViews()
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(folder))
         try {
@@ -189,7 +201,7 @@ class MainActivity : Activity() {
                             }
                         }
                     } catch (e: Exception) { "Kopierfehler: ${e.message}" }
-                    runOnUiThread { log.text = result; if (result.startsWith("Kopiert:") && selectedPane == targetPane) show(targetPane) }
+                    runOnUiThread { log.text = result; if (result.startsWith("Kopiert:")) show(targetPane) }
                 }.start()
             }.show()
     }
