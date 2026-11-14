@@ -23,21 +23,21 @@ class BridgeActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         status = TextView(this).apply {
-            text = "RootCommander Bridge"; setPadding(32, 32, 32, 32)
+            text = "RootCommander – Verbindung über Teilen"; setPadding(32, 32, 32, 32)
         }
         setContentView(status)
         val raw = intent?.getStringExtra(Intent.EXTRA_TEXT) ?: ""
-        if (raw.length > 16384) { status.text = "Request too large"; return }
+        if (raw.length > 16384) { status.text = "Die Anfrage ist zu lang. Bitte weniger Text senden."; return }
         val request = try { JSONObject(raw) } catch (_: Exception) { null }
         requestedAction = request?.optString("action") ?: ""
         requestId = request?.optString("request_id") ?: ""
         if (request == null || request.optInt("version") != 1 ||
             requestId.length !in 1..128 || requestedAction !in supported) {
-            status.text = "Unsupported or invalid request"
+            status.text = "Die Anfrage ist ungültig oder diese Funktion wird nicht unterstützt."
             return
         }
         AlertDialog.Builder(this).setTitle("RootCommander – Anfrage")
-            .setMessage("Aktion: $requestedAction\nID: $requestId\n\nNur nach deiner Zustimmung.")
+            .setMessage("Gewünschte Funktion: $requestedAction\nAnfrage-Nummer: $requestId\n\nDu entscheidest, ob die App antworten darf.")
             .setNegativeButton("Ablehnen") { _, _ -> finish() }
             .setPositiveButton("Zulassen") { _, _ ->
                 when (requestedAction) {
@@ -78,7 +78,7 @@ class BridgeActivity : Activity() {
             }
             reply(JSONObject().put("entries", entries).put("limited_to", 200))
         } catch (e: Exception) {
-            reply(JSONObject().put("error", "Cannot read selected directory"), "error")
+            reply(JSONObject().put("error", "Der gewählte Ordner konnte nicht gelesen werden. Bitte einen anderen Ordner auswählen."), "error")
         }
     }
     private fun reply(result: JSONObject, state: String = "ok") {
