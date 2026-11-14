@@ -38,7 +38,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(11, 19, 32))
         }
         root.addView(TextView(this).apply {
-            text = "ROOTCOMMANDER 1.3"; textSize = 24f
+            text = "ROOTCOMMANDER 1.4"; textSize = 24f
             setTextColor(Color.rgb(90, 204, 230)); gravity = Gravity.CENTER
         })
         val row = LinearLayout(this)
@@ -243,6 +243,10 @@ class MainActivity : Activity() {
         val dest = folders[targetPane] ?: run { log.text = Languages.label("chooseFolder"); return }
         val sourceName = selectedName
         val sourcePane = selectedPane
+        if (contentResolver.persistedUriPermissions.none { it.uri == targetTree && it.isWritePermission }) {
+            log.text = "Keine Schreibberechtigung für den Zielordner. Bitte Ordner erneut auswählen."
+            return
+        }
         val targetTree = trees[targetPane] ?: run { log.text = Languages.label("chooseTarget"); return }
         if (sourcePane == targetPane) { log.text = Languages.label("otherTarget"); return }
         if (source == dest) { log.text = Languages.label("sameTarget"); return }
