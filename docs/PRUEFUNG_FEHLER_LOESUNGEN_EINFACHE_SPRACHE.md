@@ -80,3 +80,20 @@ Die Haupt-App, die Datei-Funktionen, die Shell, die Teilen-Verbindung zu ChatGPT
 5. **Gelber Punkt:** Der Bau läuft noch.
 
 Ein grüner Build beweist nur, dass die APK gebaut wurde. Er beweist **nicht**, dass alle Funktionen auf dem Handy richtig arbeiten.
+
+
+## Nachtrag: weitere Arbeiten vom 14. November 2026
+
+- **Zwei sichtbare Dateifenster:** Links und rechts haben jetzt jeweils eine eigene Liste. Ein ausgewählter Ordner wird in seinem Fenster angezeigt. Das ist neu und muss auf dem Moto G14 noch praktisch getestet werden.
+- **Termux und Shizuku:** Es gibt Schaltflächen zum Öffnen der installierten Apps. Falls eine App fehlt oder nicht gefunden wird, fragt RootCommander, ob die offizielle Webseite geöffnet werden soll. Das installiert nichts heimlich und verleiht keine zusätzlichen Rechte.
+- **AutoFlash-Vorprüfung:** `scripts/autoflash.py` prüft eine vorhandene Image-Datei, ihre erwartete SHA-256-Prüfsumme, die Fastboot-Verbindung und eine erwartete Produktkennung. Es führt **keinen Flash-Befehl** aus. Diese Prüfungen allein können die Eignung einer Firmware nicht beweisen.
+- **Automatische Sicherheitstests:** GitHub Actions startet nun auch Python-Tests für typische Fehlerfälle bei der Fastboot-Vorprüfung.
+- **Android-Build:** Die vorherigen GitHub-Builds waren erfolgreich. Ob der neueste Stand erfolgreich baut, muss der aktuelle GitHub-Lauf zeigen.
+
+### Was weiterhin einen echten Menschen und ein Gerät braucht
+
+Die Installation der APK und der Test aller Tasten auf dem Moto G14 können nicht allein mit GitHub geprüft werden. Auch Shizuku-Einrichtung, Root-Freigabe, OEM-Entsperrung und das Flashen von Firmware benötigen echte Gerätefreigaben. Die ChatGPT-Teilen-Verbindung ist noch keine automatische Fernsteuerung.
+
+### Warum AutoFlash nicht automatisch losläuft
+
+Ein falsches System-Image kann das Handy unbrauchbar machen. Selbst wenn Prüfsumme und Produktkennung stimmen, können die Firmware-Version oder die Partition falsch sein. Deshalb bleibt das tatsächliche Flashen gesperrt, bis eine sichere, genau zum Gerät passende Vorgehensweise nachgewiesen ist.
