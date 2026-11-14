@@ -168,7 +168,7 @@ class VirtualFieldActivity : Activity() {
             }
             p.style = Paint.Style.FILL; p.color = Color.WHITE
             c.drawCircle(x, y, dp(8).toFloat(), p)
-            if (visibility == VISIBLE && isAttachedToWindow) postInvalidateDelayed(50L)
+            if (visibility == VISIBLE && isAttachedToWindow && windowVisibility == VISIBLE) postInvalidateDelayed(50L)
         }
     }
 }
