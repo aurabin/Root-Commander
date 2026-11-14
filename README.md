@@ -1,11 +1,33 @@
-# RootCommander 1.3
+# RootCommander – Datei-Verwaltung für Android
 
-Android file manager prototype with a dark GUI, two user-selected folders, copy operations, APK handoff, shell commands and optional `su` with confirmation. It does not automatically root a device, bypass Android install permissions or include embedded Bash/Shizuku yet.
+RootCommander ist eine Android-App im Aufbau. Sie kann zwei vom Benutzer freigegebene Ordner verwalten, Dateien kopieren, APK-Dateien an Android zum Installieren übergeben und lokale Shell-Befehle starten. Die beiden Ordner werden noch nicht gleichzeitig angezeigt: Du wechselst mit **Links** und **Rechts**.
 
-## Automatic build
+## Was funktioniert im Quellcode?
 
-On each push to `main`, GitHub Actions runs `gradle :app:assembleDebug`. After a successful run, download the `RootCommander-debug-apk` artifact from the Actions tab. Android installation confirmation is still required.
+- Ordner über die Android-Dateiauswahl öffnen.
+- Freigegebene Ordner beim nächsten Start wiederfinden, solange Android den Zugriff erlaubt.
+- Eine Datei auswählen und in den anderen Ordner kopieren. Vorhandene Dateien werden nicht überschrieben.
+- APK-Datei öffnen. Android muss die Installation erlauben und bestätigen.
+- Shell-Befehle ausführen. Für **Root (su)** muss das Gerät bereits Root-Rechte besitzen.
+- **Wissen & Sicherheit** erklärt technische Begriffe und Risiken.
+- Die **ChatGPT Bridge** nutzt die Android-Teilen-Funktion und fragt vor jeder Antwort um Erlaubnis.
 
-## Verification
+## Was ist noch nicht eingebaut?
 
-Source and workflow have been uploaded. Android compilation and on-device testing have **not** yet been confirmed. Do not assume a working APK until the Actions job succeeds.
+Kein automatisches Rooten, kein automatisches Flashen des Moto G14, kein eingebautes Termux oder Shizuku, kein direkter ChatGPT-Fernsteuerungs-Port und keine vollständig gleichzeitig sichtbare Zwei-Fenster-Ansicht.
+
+## APK herunterladen
+
+1. Öffne [GitHub Actions](https://github.com/aurabin/Root-Commander/actions).
+2. Wähle einen erfolgreichen Lauf von **Android AutoCompiler**.
+3. Lade unten das Paket **RootCommander-debug-apk** herunter.
+4. Entpacke die ZIP-Datei. Darin liegt die APK.
+5. Öffne die APK auf Android. Android fragt gegebenenfalls nach einer Installationsfreigabe.
+
+**Geprüft:** Die GitHub-Builds vom 14. November 2026 für die Commits `8779b8e` und `4182203` waren erfolgreich. Neuere Änderungen müssen erneut gebaut werden. **Nicht geprüft:** die Bedienung auf einem echten Moto G14.
+
+## Fehler und Lösungen
+
+Lies [die vollständige Prüfung in einfacher Sprache](docs/PRUEFUNG_FEHLER_LOESUNGEN_EINFACHE_SPRACHE.md) und [die Hinweise zur GitHub-Sicherheit](docs/GITHUB_INSTALLATION_SECURITY.md).
+
+Die App ersetzt keine Android-Sicherheitsabfragen. Bitte sichere wichtige Dateien, bevor du Systemänderungen vornimmst.
