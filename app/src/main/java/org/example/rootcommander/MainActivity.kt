@@ -38,7 +38,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(11, 19, 32))
         }
         root.addView(TextView(this).apply {
-            text = "ROOTCOMMANDER 1.4"; textSize = 24f
+            text = "ROOTCOMMANDER 1.5"; textSize = 24f
             setTextColor(Color.rgb(90, 204, 230)); gravity = Gravity.CENTER
         })
         val row = LinearLayout(this)
@@ -203,7 +203,6 @@ class MainActivity : Activity() {
         })
         Thread {
             val entries = mutableListOf<Triple<Uri, String, Boolean>>()
-            var truncated = false
             val error = try {
                 val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(folder))
                 contentResolver.query(children, arrayOf(
@@ -211,7 +210,6 @@ class MainActivity : Activity() {
                     DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                     DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)?.use { c ->
                     while (c.moveToNext()) {
-                        if (entries.size >= 500) { truncated = true; break }
                         val uri = DocumentsContract.buildDocumentUriUsingTree(tree, c.getString(0))
                         val name = c.getString(1) ?: "(unbenannt)"
                         val isFolder = c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR
@@ -227,13 +225,27 @@ class MainActivity : Activity() {
                     log.text = "Ordner konnte nicht gelesen werden: $error"
                     return@runOnUiThread
                 }
-                for ((uri, name, isFolder) in entries) {
-                    listing.addView(button((if (isFolder) "📁 " else "📄 ") + name) {
-                        if (isFolder) { folders[pane] = uri; show(pane) }
-                        else { selected = uri; selectedName = name; selectedPane = pane; log.text = "Ausgewählt: $name" }
-                    })
+                // Render entries in small batches to avoid freezing the Android UI.
+                // There is no fixed file count limit; users can load the next batch.
+                var shown = 0
+                fun renderNext() {
+                    val oldMore = listing.findViewWithTag<View>("load_more")
+                    if (oldMore != null) listing.removeView(oldMore)
+                    val end = minOf(shown + 60, entries.size)
+                    while (shown < end) {
+                        val (uri, name, isFolder) = entries[shown++]
+                        listing.addView(button((if (isFolder) "📁 " else "📄 ") + name) {
+                            if (isFolder) { folders[pane] = uri; show(pane) }
+                            else { selected = uri; selectedName = name; selectedPane = pane; log.text = "Ausgewählt: $name" }
+                        })
+                    }
+                    if (shown < entries.size) {
+                        listing.addView(button("Weitere anzeigen ($shown / ${entries.size})") { renderNext() }.apply {
+                            tag = "load_more"
+                        })
+                    }
                 }
-                if (truncated) log.text = "Es werden maximal 500 Einträge angezeigt."
+                renderNext()
                 if (entries.isEmpty()) log.text = "Dieser Ordner ist leer."
             }
         }.start()
@@ -243,11 +255,11 @@ class MainActivity : Activity() {
         val dest = folders[targetPane] ?: run { log.text = Languages.label("chooseFolder"); return }
         val sourceName = selectedName
         val sourcePane = selectedPane
+        val targetTree = trees[targetPane] ?: run { log.text = Languages.label("chooseTarget"); return }
         if (contentResolver.persistedUriPermissions.none { it.uri == targetTree && it.isWritePermission }) {
             log.text = "Keine Schreibberechtigung für den Zielordner. Bitte Ordner erneut auswählen."
             return
         }
-        val targetTree = trees[targetPane] ?: run { log.text = Languages.label("chooseTarget"); return }
         if (sourcePane == targetPane) { log.text = Languages.label("otherTarget"); return }
         if (source == dest) { log.text = Languages.label("sameTarget"); return }
         AlertDialog.Builder(this).setTitle(Languages.label("copyTitle")).setMessage(sourceName)
