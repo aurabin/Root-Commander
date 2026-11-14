@@ -1,0 +1,1 @@
+Version 1.4: Virtual Field dashboard with labeled shortcuts; Android 7.0+ minimum; background folder loading; multilingual help. This is a development release; physical device testing is pending.
