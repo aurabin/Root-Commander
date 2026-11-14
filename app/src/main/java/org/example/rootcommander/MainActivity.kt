@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.view.View
 import android.view.Gravity
 import android.widget.*
 import java.util.concurrent.TimeUnit
