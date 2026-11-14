@@ -19,6 +19,7 @@ class MainActivity : Activity() {
     private var selectedName = ""
     private var selectedPane = 0
     private lateinit var listings: Array<LinearLayout>
+    private val listingGeneration = intArrayOf(0, 0)
     private lateinit var log: TextView
     private lateinit var command: EditText
     private val fg = Color.rgb(228, 241, 251)
@@ -192,28 +193,50 @@ class MainActivity : Activity() {
     private fun show(pane: Int) {
         val tree = trees[pane] ?: return
         val folder = folders[pane] ?: return
+        val generation = ++listingGeneration[pane]
         if (selectedPane == pane) { selected = null; selectedName = "" }
         val listing = listings[pane]
         listing.removeAllViews()
-        val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(folder))
-        try {
-            contentResolver.query(children, arrayOf(
-                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)?.use { c ->
-                var shown = 0
-                while (c.moveToNext() && shown < 500) {
-                    shown++
-                    val uri = DocumentsContract.buildDocumentUriUsingTree(tree, c.getString(0))
-                    val name = c.getString(1)
-                    val isFolder = c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR
+        listing.addView(TextView(this).apply {
+            text = "Ordner wird geladen…"
+            setTextColor(fg)
+        })
+        Thread {
+            val entries = mutableListOf<Triple<Uri, String, Boolean>>()
+            var truncated = false
+            val error = try {
+                val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(folder))
+                contentResolver.query(children, arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)?.use { c ->
+                    while (c.moveToNext()) {
+                        if (entries.size >= 500) { truncated = true; break }
+                        val uri = DocumentsContract.buildDocumentUriUsingTree(tree, c.getString(0))
+                        val name = c.getString(1) ?: "(unbenannt)"
+                        val isFolder = c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR
+                        entries.add(Triple(uri, name, isFolder))
+                    }
+                }
+                null
+            } catch (e: Exception) { e.message ?: "Unbekannter Lesefehler" }
+            runOnUiThread {
+                if (isFinishing || isDestroyed || generation != listingGeneration[pane]) return@runOnUiThread
+                listing.removeAllViews()
+                if (error != null) {
+                    log.text = "Ordner konnte nicht gelesen werden: $error"
+                    return@runOnUiThread
+                }
+                for ((uri, name, isFolder) in entries) {
                     listing.addView(button((if (isFolder) "📁 " else "📄 ") + name) {
                         if (isFolder) { folders[pane] = uri; show(pane) }
                         else { selected = uri; selectedName = name; selectedPane = pane; log.text = "Ausgewählt: $name" }
                     })
                 }
+                if (truncated) log.text = "Es werden maximal 500 Einträge angezeigt."
+                if (entries.isEmpty()) log.text = "Dieser Ordner ist leer."
             }
-        } catch (e: Exception) { log.text = "Ordner konnte nicht gelesen werden. Bitte Ordner erneut freigeben. ${e.message ?: ""}" }
+        }.start()
     }
     private fun copyTo(targetPane: Int) {
         val source = selected ?: run { log.text = Languages.label("chooseFile"); return }
