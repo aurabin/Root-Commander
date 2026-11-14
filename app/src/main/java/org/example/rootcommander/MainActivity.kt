@@ -56,7 +56,7 @@ class MainActivity : Activity() {
         for (pane in 0..1) {
             val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
             column.addView(TextView(this).apply {
-                text = if (pane == 0) "LINKS" else "RECHTS"
+                text = if (pane == 0) Languages.label("panelLeft") else Languages.label("panelRight")
                 setTextColor(fg)
                 gravity = Gravity.CENTER
             })
@@ -75,14 +75,14 @@ class MainActivity : Activity() {
                 addCategory(Intent.CATEGORY_OPENABLE)
             }, 103)
         })
-        command = EditText(this).apply { hint = "Shell-Befehl"; setTextColor(fg); setHintTextColor(Color.LTGRAY) }
+        command = EditText(this).apply { hint = Languages.label("command"); setTextColor(fg); setHintTextColor(Color.LTGRAY) }
         root.addView(command)
         val terminals = LinearLayout(this)
         terminals.addView(button(Languages.label("shell")) { runShell(false) }, LinearLayout.LayoutParams(0, -2, 1f))
         terminals.addView(button(Languages.label("root")) {
-            AlertDialog.Builder(this).setTitle("Root-Befehl bestätigen")
-                .setMessage(command.text.toString()).setNegativeButton("Abbrechen", null)
-                .setPositiveButton("Ausführen") { _, _ -> runShell(true) }.show()
+            AlertDialog.Builder(this).setTitle(Languages.label("confirmRoot"))
+                .setMessage(command.text.toString()).setNegativeButton(Languages.label("cancel"), null)
+                .setPositiveButton(Languages.label("execute")) { _, _ -> runShell(true) }.show()
         }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(terminals)
         log = TextView(this).apply { text = Languages.label("ready"); setTextColor(fg); setPadding(8, 8, 8, 8) }
@@ -99,10 +99,10 @@ class MainActivity : Activity() {
             }
         } catch (_: Exception) { }
         AlertDialog.Builder(this)
-            .setTitle("Zusatzprogramm nicht gefunden")
-            .setMessage("Dieses Programm ist nicht verfügbar oder Android lässt es nicht erkennen. Du kannst die offizielle Seite öffnen. Die Installation und Einrichtung musst du selbst bestätigen.")
-            .setNegativeButton("Abbrechen", null)
-            .setPositiveButton("Offizielle Seite") { _, _ ->
+            .setTitle(Languages.label("helperMissing"))
+            .setMessage(Languages.label("helperMessage"))
+            .setNegativeButton(Languages.label("cancel"), null)
+            .setPositiveButton(Languages.label("official")) { _, _ ->
                 try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(website))) }
                 catch (_: Exception) { log.text = "Bitte die offizielle Webseite im Browser öffnen: $website" }
             }.show()
@@ -192,15 +192,15 @@ class MainActivity : Activity() {
         } catch (e: Exception) { log.text = "Ordner konnte nicht gelesen werden. Bitte Ordner erneut freigeben. ${e.message ?: ""}" }
     }
     private fun copyTo(targetPane: Int) {
-        val source = selected ?: run { log.text = "Bitte zuerst eine Datei auswählen."; return }
-        val dest = folders[targetPane] ?: run { log.text = "Bitte zuerst den Zielordner öffnen."; return }
+        val source = selected ?: run { log.text = Languages.label("chooseFile"); return }
+        val dest = folders[targetPane] ?: run { log.text = Languages.label("chooseFolder"); return }
         val sourceName = selectedName
         val sourcePane = selectedPane
-        val targetTree = trees[targetPane] ?: run { log.text = "Bitte zuerst den Zielordner auswählen."; return }
-        if (sourcePane == targetPane) { log.text = "Anderes Ziel wählen"; return }
-        if (source == dest) { log.text = "Quelle und Ziel dürfen nicht gleich sein."; return }
-        AlertDialog.Builder(this).setTitle("Datei kopieren").setMessage(sourceName)
-            .setNegativeButton("Abbrechen", null).setPositiveButton("Kopieren") { _, _ ->
+        val targetTree = trees[targetPane] ?: run { log.text = Languages.label("chooseTarget"); return }
+        if (sourcePane == targetPane) { log.text = Languages.label("otherTarget"); return }
+        if (source == dest) { log.text = Languages.label("sameTarget"); return }
+        AlertDialog.Builder(this).setTitle(Languages.label("copyTitle")).setMessage(sourceName)
+            .setNegativeButton(Languages.label("cancel"), null).setPositiveButton(Languages.label("copyTitle")) { _, _ ->
                 Thread {
                     val result = try {
                         val tree = targetTree
@@ -209,7 +209,7 @@ class MainActivity : Activity() {
                         contentResolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
                             while (c.moveToNext()) if (c.getString(0) == sourceName) exists = true
                         }
-                        if (exists) "Datei existiert bereits"
+                        if (exists) Languages.label("alreadyExists")
                         else {
                             val outUri = DocumentsContract.createDocument(contentResolver, dest,
                                 contentResolver.getType(source) ?: "application/octet-stream", sourceName)
@@ -218,21 +218,21 @@ class MainActivity : Activity() {
                                 contentResolver.openInputStream(source)!!.use { input ->
                                     contentResolver.openOutputStream(outUri, "w")!!.use { output -> input.copyTo(output) }
                                 }
-                                "Kopiert: $sourceName"
+                                Languages.label("copyDone") + sourceName
                             } catch (e: Exception) {
                                 try { DocumentsContract.deleteDocument(contentResolver, outUri) } catch (_: Exception) { }
                                 throw e
                             }
                         }
-                    } catch (e: Exception) { "Kopierfehler: ${e.message}" }
-                    runOnUiThread { log.text = result; if (result.startsWith("Kopiert:")) show(targetPane) }
+                    } catch (e: Exception) { Languages.label("copyError") + e.message }
+                    runOnUiThread { log.text = result; if (result.startsWith(Languages.label("copyDone"))) show(targetPane) }
                 }.start()
             }.show()
     }
     private fun runShell(root: Boolean) {
         val cmd = command.text.toString().trim()
-        if (cmd.isBlank()) { log.text = "Bitte zuerst einen Befehl eingeben."; return }
-        log.text = "Ausführen…"
+        if (cmd.isBlank()) { log.text = Languages.label("enterCommand"); return }
+        log.text = Languages.label("running")
         Thread {
             val result = try {
                 val p = ProcessBuilder(if (root) listOf("su", "-c", cmd)
