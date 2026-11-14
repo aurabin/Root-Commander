@@ -44,6 +44,7 @@ class MainActivity : Activity() {
         row.addView(button(Languages.label("left")) { choose(0) }, LinearLayout.LayoutParams(0, -2, 1f))
         row.addView(button(Languages.label("right")) { choose(1) }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(row)
+        root.addView(button("◉ Virtual Field / Virtuelles Feld") { startActivity(Intent(this, VirtualFieldActivity::class.java)) })
         root.addView(button(Languages.label("guide")) { startActivity(Intent(this, GuideActivity::class.java)) })
         val helpers = LinearLayout(this)
         helpers.addView(button(Languages.label("termux")) { openHelper("com.termux", "https://f-droid.org/packages/com.termux/") },
