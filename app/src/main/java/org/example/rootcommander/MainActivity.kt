@@ -45,6 +45,12 @@ class MainActivity : Activity() {
         row.addView(button("Rechts ▶") { choose(1) }, LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(row)
         root.addView(button("📘 Wissen & Sicherheit") { startActivity(Intent(this, GuideActivity::class.java)) })
+        val helpers = LinearLayout(this)
+        helpers.addView(button("Termux") { openHelper("com.termux", "https://f-droid.org/packages/com.termux/") },
+            LinearLayout.LayoutParams(0, -2, 1f))
+        helpers.addView(button("Shizuku") { openHelper("moe.shizuku.privileged.api", "https://shizuku.rikka.app/") },
+            LinearLayout.LayoutParams(0, -2, 1f))
+        root.addView(helpers)
         listings = Array(2) { LinearLayout(this).apply { orientation = LinearLayout.VERTICAL } }
         val panels = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         for (pane in 0..1) {
@@ -84,6 +90,24 @@ class MainActivity : Activity() {
         setContentView(root)
         restoreFolders()
     }
+    private fun openHelper(packageId: String, website: String) {
+        try {
+            val launch = packageManager.getLaunchIntentForPackage(packageId)
+            if (launch != null) {
+                startActivity(launch)
+                return
+            }
+        } catch (_: Exception) { }
+        AlertDialog.Builder(this)
+            .setTitle("Zusatzprogramm nicht gefunden")
+            .setMessage("Dieses Programm ist nicht verfügbar oder Android lässt es nicht erkennen. Du kannst die offizielle Seite öffnen. Die Installation und Einrichtung musst du selbst bestätigen.")
+            .setNegativeButton("Abbrechen", null)
+            .setPositiveButton("Offizielle Seite") { _, _ ->
+                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(website))) }
+                catch (_: Exception) { log.text = "Bitte die offizielle Webseite im Browser öffnen: $website" }
+            }.show()
+    }
+
     private fun restoreFolders() {
         for (pane in 0..1) {
             val stored = getPreferences(MODE_PRIVATE).getString("folder_$pane", null) ?: continue
