@@ -163,7 +163,7 @@ class MainActivity : Activity() {
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
         if (requestCode == 103) {
-            if (!packageManager.canRequestPackageInstalls()) {
+            if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
                 startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:$packageName")))
                 log.text = "Installationsfreigabe erteilen und APK erneut auswählen"
