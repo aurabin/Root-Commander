@@ -42,14 +42,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v1.4.0-virtual-field"
+          TAG="v1.5.0-build-${GITHUB_SHA:0:7}"
           APK="app/build/outputs/apk/debug/app-debug.apk"
           SUM="app/build/outputs/apk/debug/SHA256SUMS.txt"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#RootCommander-1.4-VirtualField-debug.apk" "$SUM" --clobber
+            echo "Release $TAG already exists; keeping it immutable."
           else
-            gh release create "$TAG" "$APK#RootCommander-VirtualField-debug.apk" "$SUM" \
-              --title "RootCommander 1.4 Virtual Field (Debug)" \
-              --notes "Android 7.0+ debug APK. Simplified Virtual Field launcher, file manager, background folder loading, multilingual help. Automated build and tests; not device-tested. No automatic root access." \
+            gh release create "$TAG" "$APK#RootCommander-1.5-debug.apk" "$SUM" \
+              --title "RootCommander 1.5 Virtual Field (Debug) · ${GITHUB_SHA:0:7}" \
+              --notes "Android 7.0+ debug APK. Virtual Field launcher, unbounded file listing with 60-entry display batches, multilingual help. Automated build and tests; not device-tested. No automatic root access. Each release is tied to a unique commit." \
               --prerelease --target "${GITHUB_SHA}"
           fi
