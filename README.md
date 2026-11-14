@@ -1,6 +1,6 @@
 # RootCommander – Datei-Verwaltung für Android
 
-RootCommander ist eine Android-App im Aufbau. Sie kann zwei vom Benutzer freigegebene Ordner verwalten, Dateien kopieren, APK-Dateien an Android zum Installieren übergeben und lokale Shell-Befehle starten. Die beiden Ordner werden noch nicht gleichzeitig angezeigt: Du wechselst mit **Links** und **Rechts**.
+RootCommander ist eine Android-App im Aufbau. Sie kann zwei vom Benutzer freigegebene Ordner verwalten, Dateien kopieren, APK-Dateien an Android zum Installieren übergeben und lokale Shell-Befehle starten. Die beiden Ordner werden im aktuellen Quellcode nebeneinander angezeigt. Die Darstellung auf einem echten Moto G14 muss noch getestet werden.
 
 ## Was funktioniert im Quellcode?
 
@@ -14,7 +14,7 @@ RootCommander ist eine Android-App im Aufbau. Sie kann zwei vom Benutzer freigeg
 
 ## Was ist noch nicht eingebaut?
 
-Kein automatisches Rooten, kein automatisches Flashen des Moto G14, kein eingebautes Termux oder Shizuku, kein direkter ChatGPT-Fernsteuerungs-Port und keine vollständig gleichzeitig sichtbare Zwei-Fenster-Ansicht.
+Kein automatisches Rooten, kein automatisches Flashen des Moto G14, keine automatische Einrichtung von Termux oder Shizuku und kein direkter ChatGPT-Fernsteuerungs-Port. Es gibt Schaltflächen zum Öffnen von Termux und Shizuku oder ihrer offiziellen Webseiten.
 
 ## APK herunterladen
 
