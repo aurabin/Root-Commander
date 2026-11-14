@@ -50,7 +50,7 @@ class VirtualFieldActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = Color.rgb(8, 17, 32)
         window.navigationBarColor = Color.rgb(8, 17, 32)
-        val screen = ScrollView(this).apply { fillViewport = true }
+        val screen = ScrollView(this).apply { isFillViewport = true }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(18), dp(16), dp(12))
