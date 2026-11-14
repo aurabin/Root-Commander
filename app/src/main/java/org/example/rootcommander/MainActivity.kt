@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.provider.DocumentsContract
 import android.view.Gravity
 import android.widget.*
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class MainActivity : Activity() {
@@ -70,7 +71,27 @@ class MainActivity : Activity() {
         log = TextView(this).apply { text = "Bereit"; setTextColor(fg); setPadding(8, 8, 8, 8) }
         root.addView(ScrollView(this).apply { addView(log) }, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
+        restoreFolders()
     }
+    private fun restoreFolders() {
+        for (pane in 0..1) {
+            val stored = getPreferences(MODE_PRIVATE).getString("folder_$pane", null) ?: continue
+            try {
+                val uri = Uri.parse(stored)
+                val allowed = contentResolver.persistedUriPermissions.any { it.uri == uri && it.isReadPermission }
+                if (!allowed) throw SecurityException("Freigabe fehlt")
+                trees[pane] = uri
+                folders[pane] = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
+            } catch (_: Exception) {
+                trees[pane] = null
+                folders[pane] = null
+                getPreferences(MODE_PRIVATE).edit().remove("folder_$pane").apply()
+                log.text = "Ein alter Ordnerzugriff ist nicht mehr gültig. Bitte Ordner erneut auswählen."
+            }
+        }
+        if (trees[0] != null) show(0) else if (trees[1] != null) show(1)
+    }
+
     private fun choose(pane: Int) {
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
@@ -99,6 +120,7 @@ class MainActivity : Activity() {
         try {
             contentResolver.takePersistableUriPermission(uri,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            getPreferences(MODE_PRIVATE).edit().putString("folder_$pane", uri.toString()).apply()
             trees[pane] = uri
             folders[pane] = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
             show(pane)
@@ -107,7 +129,7 @@ class MainActivity : Activity() {
     private fun show(pane: Int) {
         val tree = trees[pane] ?: return
         val folder = folders[pane] ?: return
-        selected = null; selectedPane = pane
+        selected = null; selectedName = ""; selectedPane = pane
         listing.removeAllViews()
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(folder))
         try {
@@ -128,42 +150,45 @@ class MainActivity : Activity() {
         } catch (e: Exception) { log.text = "Lesefehler: ${e.message}" }
     }
     private fun copyTo(targetPane: Int) {
-        val source = selected ?: return
-        val dest = folders[targetPane] ?: return
-        if (selectedPane == targetPane) { log.text = "Anderes Ziel wählen"; return }
-        AlertDialog.Builder(this).setTitle("Datei kopieren").setMessage(selectedName)
+        val source = selected ?: run { log.text = "Bitte zuerst eine Datei auswählen."; return }
+        val dest = folders[targetPane] ?: run { log.text = "Bitte zuerst den Zielordner öffnen."; return }
+        val sourceName = selectedName
+        val sourcePane = selectedPane
+        val targetTree = trees[targetPane] ?: run { log.text = "Bitte zuerst den Zielordner auswählen."; return }
+        if (sourcePane == targetPane) { log.text = "Anderes Ziel wählen"; return }
+        AlertDialog.Builder(this).setTitle("Datei kopieren").setMessage(sourceName)
             .setNegativeButton("Abbrechen", null).setPositiveButton("Kopieren") { _, _ ->
                 Thread {
                     val result = try {
-                        val tree = trees[targetPane]!!
+                        val tree = targetTree
                         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getDocumentId(dest))
                         var exists = false
                         contentResolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
-                            while (c.moveToNext()) if (c.getString(0) == selectedName) exists = true
+                            while (c.moveToNext()) if (c.getString(0) == sourceName) exists = true
                         }
                         if (exists) "Datei existiert bereits"
                         else {
                             val outUri = DocumentsContract.createDocument(contentResolver, dest,
-                                contentResolver.getType(source) ?: "application/octet-stream", selectedName)
+                                contentResolver.getType(source) ?: "application/octet-stream", sourceName)
                                 ?: error("Zieldatei konnte nicht angelegt werden")
                             try {
                                 contentResolver.openInputStream(source)!!.use { input ->
                                     contentResolver.openOutputStream(outUri, "w")!!.use { output -> input.copyTo(output) }
                                 }
-                                "Kopiert: $selectedName"
+                                "Kopiert: $sourceName"
                             } catch (e: Exception) {
-                                DocumentsContract.deleteDocument(contentResolver, outUri)
+                                try { DocumentsContract.deleteDocument(contentResolver, outUri) } catch (_: Exception) { }
                                 throw e
                             }
                         }
                     } catch (e: Exception) { "Kopierfehler: ${e.message}" }
-                    runOnUiThread { log.text = result }
+                    runOnUiThread { log.text = result; if (result.startsWith("Kopiert:") && selectedPane == targetPane) show(targetPane) }
                 }.start()
             }.show()
     }
     private fun runShell(root: Boolean) {
-        val cmd = command.text.toString()
-        if (cmd.isBlank()) return
+        val cmd = command.text.toString().trim()
+        if (cmd.isBlank()) { log.text = "Bitte zuerst einen Befehl eingeben."; return }
         log.text = "Ausführen…"
         Thread {
             val result = try {
@@ -172,7 +197,10 @@ class MainActivity : Activity() {
                 val output = StringBuilder()
                 val reader = Thread {
                     try { p.inputStream.bufferedReader().useLines { lines ->
-                        for (line in lines) if (output.length < 12000) output.append(line.take(1000)).append('\n')
+                        for (line in lines) {
+                            if (output.length >= 12000) break
+                            output.append(line.take(1000)).append('\n')
+                        }
                     } } catch (_: Exception) {}
                 }
                 reader.start()
