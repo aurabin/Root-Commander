@@ -121,7 +121,7 @@ class MainActivity : Activity() {
                     "Root-Abfrage abgebrochen oder Zeitüberschreitung. Keine Root-Rechte bestätigt."
                 } else if (p.exitValue() == 0) {
                     val output = p.inputStream.bufferedReader().readText().take(300)
-                    if (Regex("""uid=0\\b""").containsMatchIn(output))
+                    if (Regex("""uid=0\b""").containsMatchIn(output))
                         "Root-Zugriff bestätigt: $output"
                     else "Keine Root-Rechte bestätigt: $output"
                 } else "Root ist nicht verfügbar oder wurde abgelehnt."
