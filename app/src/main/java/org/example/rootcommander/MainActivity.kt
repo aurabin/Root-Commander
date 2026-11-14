@@ -51,6 +51,7 @@ class MainActivity : Activity() {
         helpers.addView(button(Languages.label("shizuku")) { openHelper("moe.shizuku.privileged.api", "https://shizuku.rikka.app/") },
             LinearLayout.LayoutParams(0, -2, 1f))
         root.addView(helpers)
+        root.addView(button("Root prüfen / Check root") { checkRootStatus() })
         listings = Array(2) { LinearLayout(this).apply { orientation = LinearLayout.VERTICAL } }
         val panels = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         for (pane in 0..1) {
@@ -106,6 +107,28 @@ class MainActivity : Activity() {
                 try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(website))) }
                 catch (_: Exception) { log.text = "Bitte die offizielle Webseite im Browser öffnen: $website" }
             }.show()
+    }
+
+    private fun checkRootStatus() {
+        log.text = "Prüfe, ob Root bereits eingerichtet ist…"
+        Thread {
+            val result = try {
+                val p = ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start()
+                val finished = p.waitFor(8, TimeUnit.SECONDS)
+                if (!finished) {
+                    p.destroyForcibly()
+                    "Root-Abfrage abgebrochen oder Zeitüberschreitung. Keine Root-Rechte bestätigt."
+                } else if (p.exitValue() == 0) {
+                    val output = p.inputStream.bufferedReader().readText().take(300)
+                    if (Regex("uid=0\\\\b").containsMatchIn(output))
+                        "Root-Zugriff bestätigt: $output"
+                    else "Keine Root-Rechte bestätigt: $output"
+                } else "Root ist nicht verfügbar oder wurde abgelehnt."
+            } catch (_: Exception) {
+                "Root ist nicht eingerichtet oder nicht erreichbar. RootCommander kann Root nicht selbst installieren."
+            }
+            runOnUiThread { log.text = result }
+        }.start()
     }
 
     private fun restoreFolders() {
