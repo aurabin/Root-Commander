@@ -18,7 +18,9 @@ jobs:
       - name: Android-Werkzeuge prüfen und installieren
         run: |
           echo "Android SDK: $ANDROID_HOME"
-          sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          if [ -z "$SDKMANAGER" ]; then echo 'Android SDK Manager fehlt'; exit 1; fi
+          yes | "$SDKMANAGER" --install 'platforms;android-35' 'build-tools;35.0.0' || test "${PIPESTATUS[1]}" -eq 0
           echo "Android-Werkzeuge bereit"
       - uses: gradle/actions/setup-gradle@v4
         with:
