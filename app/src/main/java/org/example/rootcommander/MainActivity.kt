@@ -109,17 +109,21 @@ class MainActivity : Activity() {
                 log.text = "Installationsfreigabe erteilen und APK erneut auswählen"
                 return
             }
-            startActivity(Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            })
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/vnd.android.package-archive")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                })
+            } catch (_: Exception) {
+                log.text = "Keine App kann diese APK öffnen. Prüfe, ob ein Paket-Installer vorhanden ist."
+            }
             return
         }
         val pane = requestCode - 101
         if (pane !in 0..1) return
         try {
-            contentResolver.takePersistableUriPermission(uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            val granted = (data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION))
+            contentResolver.takePersistableUriPermission(uri, granted)
             getPreferences(MODE_PRIVATE).edit().putString("folder_$pane", uri.toString()).apply()
             trees[pane] = uri
             folders[pane] = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri))
@@ -137,7 +141,9 @@ class MainActivity : Activity() {
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                 DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)?.use { c ->
-                while (c.moveToNext()) {
+                var shown = 0
+                while (c.moveToNext() && shown < 500) {
+                    shown++
                     val uri = DocumentsContract.buildDocumentUriUsingTree(tree, c.getString(0))
                     val name = c.getString(1)
                     val isFolder = c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR
@@ -147,7 +153,7 @@ class MainActivity : Activity() {
                     })
                 }
             }
-        } catch (e: Exception) { log.text = "Lesefehler: ${e.message}" }
+        } catch (e: Exception) { log.text = "Ordner konnte nicht gelesen werden. Bitte Ordner erneut freigeben. ${e.message ?: ""}" }
     }
     private fun copyTo(targetPane: Int) {
         val source = selected ?: run { log.text = "Bitte zuerst eine Datei auswählen."; return }
@@ -156,6 +162,7 @@ class MainActivity : Activity() {
         val sourcePane = selectedPane
         val targetTree = trees[targetPane] ?: run { log.text = "Bitte zuerst den Zielordner auswählen."; return }
         if (sourcePane == targetPane) { log.text = "Anderes Ziel wählen"; return }
+        if (source == dest) { log.text = "Quelle und Ziel dürfen nicht gleich sein."; return }
         AlertDialog.Builder(this).setTitle("Datei kopieren").setMessage(sourceName)
             .setNegativeButton("Abbrechen", null).setPositiveButton("Kopieren") { _, _ ->
                 Thread {
