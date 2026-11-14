@@ -25,6 +25,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Sicherheitsprüfungen für Fastboot
+        run: python3 -m unittest discover -s tests -v
       - run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
