@@ -50,6 +50,7 @@ class VirtualFieldActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = Color.rgb(8, 17, 32)
         window.navigationBarColor = Color.rgb(8, 17, 32)
+        val screen = ScrollView(this).apply { fillViewport = true }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(18), dp(16), dp(12))
@@ -61,8 +62,8 @@ class VirtualFieldActivity : Activity() {
             "Vos outils. Votre contrôle.", "Suas ferramentas. Seu controle."), 13f, Color.LTGRAY))
         val orbit = OrbitView()
         root.addView(orbit, LinearLayout.LayoutParams(-1, dp(132)).apply { topMargin = dp(12) })
-        val scroll = ScrollView(this).apply { isFillViewport = false }
         val grid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val singleColumn = resources.configuration.screenWidthDp < 360 || resources.configuration.fontScale >= 1.35f
         fun tile(symbol: String, title: String, subtitle: String, task: () -> Unit): LinearLayout {
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -76,17 +77,27 @@ class VirtualFieldActivity : Activity() {
             }
             item.addView(label(symbol, 28f, cyan).apply { gravity = Gravity.CENTER })
             item.addView(label(title, 14f).apply { gravity = Gravity.CENTER; maxLines = 2 })
-            item.addView(label(subtitle, 10f, Color.LTGRAY).apply { gravity = Gravity.CENTER; maxLines = 2 })
+            item.addView(label(subtitle, 12f, Color.LTGRAY).apply { gravity = Gravity.CENTER; maxLines = 3 })
             return item
         }
         fun row(vararg items: LinearLayout) {
-            val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            items.forEach { item ->
-                line.addView(item, LinearLayout.LayoutParams(0, dp(115), 1f).apply {
-                    setMargins(dp(4), dp(4), dp(4), dp(4))
-                })
+            if (singleColumn) {
+                items.forEach { item ->
+                    grid.addView(item, LinearLayout.LayoutParams(-1, -2).apply {
+                        setMargins(dp(4), dp(5), dp(4), dp(5))
+                    })
+                    item.minimumHeight = dp(100)
+                }
+            } else {
+                val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                items.forEach { item ->
+                    line.addView(item, LinearLayout.LayoutParams(0, -2, 1f).apply {
+                        setMargins(dp(4), dp(5), dp(4), dp(5))
+                    })
+                    item.minimumHeight = dp(115)
+                }
+                grid.addView(line)
             }
-            grid.addView(line)
         }
         row(
             tile("▣", tr("Dateien", "Files", "Fichiers", "Arquivos"), tr("Zwei Fenster", "Dual pane", "Deux volets", "Dois painéis")) {
@@ -135,13 +146,13 @@ class VirtualFieldActivity : Activity() {
                 }, null))
             }
         )
-        scroll.addView(grid)
-        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(grid)
         root.addView(label(tr("Keine heimliche Fernsteuerung. Android-Berechtigungen bleiben geschützt.",
             "No hidden remote control. Android permissions remain protected.",
             "Aucun contrôle à distance caché. Permissions Android protégées.",
             "Sem controle remoto oculto. Permissões Android protegidas."), 11f, Color.LTGRAY))
-        setContentView(root)
+        screen.addView(root)
+        setContentView(screen)
     }
 
     private inner class OrbitView : View(this@VirtualFieldActivity) {
