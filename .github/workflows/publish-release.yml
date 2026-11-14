@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - .github/workflows/publish-release.yml
+      - "app/**"
+      - "tests/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
 permissions:
   contents: write
 jobs:
@@ -32,19 +36,20 @@ jobs:
       - name: Check APK
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
-          sha256sum app/build/outputs/apk/debug/app-debug.apk > app/build/outputs/apk/debug/SHA256SUMS.txt
+          cd app/build/outputs/apk/debug
+          sha256sum app-debug.apk > SHA256SUMS.txt
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v0.1.0-virtual-field"
+          TAG="v1.4.0-virtual-field"
           APK="app/build/outputs/apk/debug/app-debug.apk"
           SUM="app/build/outputs/apk/debug/SHA256SUMS.txt"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#RootCommander-VirtualField-debug.apk" "$SUM" --clobber
+            gh release upload "$TAG" "$APK#RootCommander-1.4-VirtualField-debug.apk" "$SUM" --clobber
           else
             gh release create "$TAG" "$APK#RootCommander-VirtualField-debug.apk" "$SUM" \
-              --title "RootCommander Virtual Field v0.1.0 (Debug)" \
-              --notes "Android debug APK with animated Virtual Field dashboard. Build and tests run in GitHub Actions. Not device-tested; no automatic root access." \
+              --title "RootCommander 1.4 Virtual Field (Debug)" \
+              --notes "Android 7.0+ debug APK. Simplified Virtual Field launcher, file manager, background folder loading, multilingual help. Automated build and tests; not device-tested. No automatic root access." \
               --prerelease --target "${GITHUB_SHA}"
           fi
